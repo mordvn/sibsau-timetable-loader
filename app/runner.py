@@ -62,8 +62,13 @@ class Runner:
     async def _fetch_timetables(entities: List[Entity]) -> List[TimetableData]:
         timetables = []
         for entity in entities:
-            timetable = await Parser.get_timetable(entity)
-            timetables.append(timetable)
+            try:
+                timetable = await Parser.get_timetable(entity)
+                timetables.append(timetable)
+            except Exception as e:
+                logger.warning(
+                    f"Failed to get timetable for {entity.type.value} {entity.id}: {e}. Skipping"
+                )
             await asyncio.sleep(settings.ANTI_DDOS_FETCH_INTERVAL)
         return timetables
 

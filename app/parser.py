@@ -43,6 +43,9 @@ class Parser:
         entity = Entity(
             type=entity.type, id=entity.id, name=Parser._parse_id_name(soup)
         )
+        if entity.name == "":
+            raise Exception(f"Failed to parse Timetable for {entity.type.value} {entity.id}")
+
         metadata = Parser._parse_metadata(soup)
 
         lessons = []

@@ -1,5 +1,4 @@
 import asyncio
-from logger import trace
 from profiler import profile
 from loguru import logger
 from database import Database
@@ -24,7 +23,7 @@ class Runner:
 
         async with (
             Database(settings.MONGODB_URI) as db,
-            Broker(settings.RABBITMQ_URI, "timetable_changes") as broker,
+            Broker(settings.RABBITMQ_URI) as broker,
         ):
             process_entities = Runner._get_process_entities()
             timetables = await Runner._fetch_timetables(process_entities)

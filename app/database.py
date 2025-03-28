@@ -114,6 +114,7 @@ class Database:
                 raise e
 
     @profile(func_name="database.create_timetable")
+    @trace
     async def create_timetable(self, timetable: TimetableData) -> bool:
         await self.initialize()
 
@@ -182,6 +183,7 @@ class Database:
         return count > 0
 
     @profile(func_name="database.update_timetable")
+    @trace
     async def update_timetable(self, timetable: TimetableData) -> bool:
         await self.initialize()
 
@@ -235,7 +237,7 @@ class Database:
     ) -> Optional[TimetableData]:
         """DEPRECATED"""
         logger.warning("get_timetable is deprecated")
-        
+
         await self.initialize()
         model = await TimetableModel.find_one(
             {"entity.type": entity_type.value, "entity.id": entity_id}

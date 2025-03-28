@@ -9,7 +9,7 @@ class Validator:
     @staticmethod
     @profile(func_name="validator.validate_timetable")
     async def validate_timetables(
-        timetables: List[TimetableData]
+        timetables: List[TimetableData],
     ) -> List[TimetableData]:
         semester = None
         for timetable in timetables:
@@ -20,4 +20,3 @@ class Validator:
             if not timetable.metadata.semester:
                 timetable.metadata.semester = semester
         return timetables
-       

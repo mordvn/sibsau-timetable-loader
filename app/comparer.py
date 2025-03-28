@@ -89,7 +89,7 @@ class Comparer:
                             )
                         ],
                         old_lesson=None,
-                        new_lesson=lesson2
+                        new_lesson=lesson2,
                     )
                 )
             else:
@@ -101,7 +101,7 @@ class Comparer:
                             change_type=ChangeType.LESSON_MODIFIED,
                             field_changes=field_changes,
                             old_lesson=lesson1,
-                            new_lesson=lesson2
+                            new_lesson=lesson2,
                         )
                     )
 
@@ -116,7 +116,7 @@ class Comparer:
                             )
                         ],
                         old_lesson=lesson1,
-                        new_lesson=None
+                        new_lesson=None,
                     )
                 )
 

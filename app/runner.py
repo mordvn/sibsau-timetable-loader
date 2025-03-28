@@ -72,6 +72,7 @@ class Runner:
                 logger.warning(
                     f"Failed to get timetable for {entity.type.value} {entity.id}: {e}. Skipping"
                 )
+            logger.info(f"Got timetable for {entity.type.value} {entity.id}")
             await asyncio.sleep(settings.ANTI_DDOS_FETCH_INTERVAL)
         return timetables
 

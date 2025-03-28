@@ -115,6 +115,8 @@ class Broker:
                     {
                         "change_type": lesson_change.change_type.value,
                         "field_changes": field_changes,
+                        "old_lesson": str(lesson_change.old_lesson) if lesson_change.old_lesson else None,
+                        "new_lesson": str(lesson_change.new_lesson) if lesson_change.new_lesson else None
                     }
                 )
 

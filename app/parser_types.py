@@ -113,6 +113,8 @@ class FieldChange:
 class LessonChange:
     change_type: ChangeType
     field_changes: List[FieldChange]
+    old_lesson: Lesson
+    new_lesson: Lesson
 
 
 @dataclass

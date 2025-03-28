@@ -88,6 +88,8 @@ class Comparer:
                                 field_name="lesson", old_value=None, new_value=lesson2
                             )
                         ],
+                        old_lesson=None,
+                        new_lesson=lesson2
                     )
                 )
             else:
@@ -98,6 +100,8 @@ class Comparer:
                         LessonChange(
                             change_type=ChangeType.LESSON_MODIFIED,
                             field_changes=field_changes,
+                            old_lesson=lesson1,
+                            new_lesson=lesson2
                         )
                     )
 
@@ -111,6 +115,8 @@ class Comparer:
                                 field_name="lesson", old_value=lesson1, new_value=None
                             )
                         ],
+                        old_lesson=lesson1,
+                        new_lesson=None
                     )
                 )
 

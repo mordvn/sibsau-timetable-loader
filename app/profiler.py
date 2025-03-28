@@ -6,8 +6,15 @@ from collections import defaultdict
 from config import settings
 import psutil
 import os
+from loguru import logger
 
 from tabulate import tabulate
+
+THRESHOLD_SECONDS = 0.2
+
+RED = "\033[91m"
+YELLOW = "\033[93m"
+RESET = "\033[0m"
 
 if settings.DEBUG:
 
@@ -19,6 +26,7 @@ if settings.DEBUG:
                     "calls": 0,
                     "min_time": float("inf"),
                     "max_time": 0,
+                    "slow_calls": 0,
                 }
             )
             self.process = psutil.Process(os.getpid())
@@ -36,29 +44,25 @@ if settings.DEBUG:
             stats["min_time"] = min(stats["min_time"], execution_time)
             stats["max_time"] = max(stats["max_time"], execution_time)
 
+            if execution_time > THRESHOLD_SECONDS:
+                stats["slow_calls"] += 1
+
             current_time = time.time()
             if current_time - self.last_sample_time >= self.sample_interval:
                 self._sample_resources()
                 self.last_sample_time = current_time
 
         def _sample_resources(self):
-            # Получаем текущее использование памяти в МБ
             memory_mb = self.process.memory_info().rss / 1024 / 1024
             self.memory_samples.append(memory_mb)
 
-            # Получаем текущее использование CPU в процентах
-            try:
-                cpu_percent = self.process.cpu_percent(interval=0.1)
-                self.cpu_samples.append(cpu_percent)
-            except:
-                # Некоторые платформы могут иметь проблемы с cpu_percent
-                pass
+            cpu_percent = self.process.cpu_percent(interval=0.1)
+            self.cpu_samples.append(cpu_percent)
 
         def print_stats(self):
             if not self.function_stats:
                 return
 
-            # Берем финальный снимок использования ресурсов
             self._sample_resources()
 
             print("\n=== Function Execution Time Profile ===")
@@ -77,6 +81,7 @@ if settings.DEBUG:
                 "Avg Time (s)",
                 "Min Time (s)",
                 "Max Time (s)",
+                "Slow Calls",  # New column for slow calls
             ]
 
             for func_name, stats in sorted_stats:
@@ -85,18 +90,42 @@ if settings.DEBUG:
                 )
                 min_time = stats["min_time"] if stats["min_time"] != float("inf") else 0
 
-                table_data.append(
-                    [
-                        func_name,
-                        round(stats["total_time"], 4),
-                        stats["calls"],
-                        round(avg_time, 4),
-                        round(min_time, 4),
-                        round(stats["max_time"], 4),
-                    ]
-                )
+                row = [
+                    func_name,
+                    round(stats["total_time"], 4),
+                    stats["calls"],
+                    round(avg_time, 4),
+                    round(min_time, 4),
+                    round(stats["max_time"], 4),
+                    stats["slow_calls"],
+                ]
+
+                if stats["slow_calls"] > 0:
+                    if (
+                        stats["slow_calls"] >= stats["calls"] * 0.5
+                    ):  # 50% or more calls are slow
+                        row[0] = f"{RED}{row[0]}{RESET}"
+                    else:
+                        row[0] = f"{YELLOW}{row[0]}{RESET}"
+
+                table_data.append(row)
 
             print(tabulate(table_data, headers=headers, tablefmt="grid"))
+
+            slow_funcs = [
+                (name, data["slow_calls"])
+                for name, data in self.function_stats.items()
+                if data["slow_calls"] > 0
+            ]
+            if slow_funcs:
+                print(f"\n{YELLOW}=== Slow Functions Summary ==={RESET}")
+                slow_funcs.sort(key=lambda x: x[1], reverse=True)
+                for name, count in slow_funcs:
+                    percentage = (count / self.function_stats[name]["calls"]) * 100
+                    color = RED if percentage >= 50 else YELLOW
+                    print(
+                        f"{color}{name}: {count} slow calls ({percentage:.1f}% of total calls){RESET}"
+                    )
 
             print("\n=== System Resource Usage ===")
 
@@ -129,45 +158,57 @@ if settings.DEBUG:
                     ]
                 )
 
-            memory_info = psutil.virtual_memory()
-            resource_table.append(
-                ["System Memory (%)", "-", "-", round(memory_info.percent, 2)]
-            )
-
             print(tabulate(resource_table, headers=resource_headers, tablefmt="grid"))
 
     profiler = Profiler()
 
 
-def profile(func):
-    if not settings.DEBUG:
-        return func
+def profile(func=None, *, func_name=None):
+    def decorator(fn):
+        if not settings.DEBUG:
+            return fn
 
-    if asyncio.iscoroutinefunction(func):
+        profile_name = func_name or fn.__name__
 
-        @wraps(func)
-        async def async_wrapper(*args, **kwargs):
-            start_time = time.perf_counter()
-            result = await func(*args, **kwargs)
-            end_time = time.perf_counter()
-            execution_time = end_time - start_time
+        if asyncio.iscoroutinefunction(fn):
 
-            profiler.add_execution_time(func.__name__, execution_time)
+            @wraps(fn)
+            async def async_wrapper(*args, **kwargs):
+                start_time = time.perf_counter()
+                result = await fn(*args, **kwargs)
+                end_time = time.perf_counter()
+                execution_time = end_time - start_time
 
-            return result
+                profiler.add_execution_time(profile_name, execution_time)
 
-        return async_wrapper
-    else:
+                if execution_time > THRESHOLD_SECONDS:
+                    logger.warning(
+                        f"Slow function detected: {profile_name} took {execution_time:.4f} seconds"
+                    )
 
-        @wraps(func)
-        def sync_wrapper(*args, **kwargs):
-            start_time = time.perf_counter()
-            result = func(*args, **kwargs)
-            end_time = time.perf_counter()
-            execution_time = end_time - start_time
+                return result
 
-            profiler.add_execution_time(func.__name__, execution_time)
+            return async_wrapper
+        else:
 
-            return result
+            @wraps(fn)
+            def sync_wrapper(*args, **kwargs):
+                start_time = time.perf_counter()
+                result = fn(*args, **kwargs)
+                end_time = time.perf_counter()
+                execution_time = end_time - start_time
 
-        return sync_wrapper
+                profiler.add_execution_time(profile_name, execution_time)
+
+                if execution_time > THRESHOLD_SECONDS:
+                    logger.warning(
+                        f"Slow function detected: {profile_name} took {execution_time:.4f} seconds"
+                    )
+
+                return result
+
+            return sync_wrapper
+
+    if func is None:
+        return decorator
+    return decorator(func)

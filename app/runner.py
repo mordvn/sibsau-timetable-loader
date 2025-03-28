@@ -34,13 +34,16 @@ class Runner:
 
             timetables = await Validator.validate_timetables(timetables)
 
+            logger.info(f"Found {len(timetables)} timetables")
             db_timetables = await db.get_timetables()
             changes = await Runner._detect_changes(db_timetables, timetables)
+            logger.info(f"Detected {len(changes)} changes")
 
             if changes:
                 await broker.send_changes(changes)
 
             await Runner._add_new_timetables(db, timetables)
+            logger.info(f"Added {len(timetables)} timetables")
 
         logger.info(
             "Finished process_all_entities after %s seconds", time.time() - start_time

@@ -8,9 +8,10 @@ import psutil
 import os
 from loguru import logger
 
+
 from tabulate import tabulate
 
-THRESHOLD_SECONDS = 0.2
+THRESHOLD_SECONDS = 1
 
 RED = "\033[91m"
 YELLOW = "\033[93m"

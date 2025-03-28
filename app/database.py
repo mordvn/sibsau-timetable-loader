@@ -63,6 +63,14 @@ class TimetableModel(Document):
     class Settings:
         name = "timetables"
         use_revision = False
+        indexes = [
+            "entity.type",
+            "entity.id",
+            "entity.name",
+            "metadata.week_number",
+            "metadata.date",
+            "metadata.semester",
+        ]
 
 
 class Database:
@@ -79,7 +87,7 @@ class Database:
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.close()
 
-    @profile
+    @profile(func_name="database.initialize")
     async def initialize(self):
         if not self.initialized:
             try:
@@ -105,8 +113,7 @@ class Database:
                 self.initialized = False
                 raise e
 
-    @trace
-    @profile
+    @profile(func_name="database.create_timetable")
     async def create_timetable(self, timetable: TimetableData) -> bool:
         await self.initialize()
 
@@ -166,7 +173,7 @@ class Database:
             logger.error(f"Ошибка создания расписания: {e}")
             return False
 
-    @profile
+    @profile(func_name="database.is_exist")
     async def is_exist(self, entity_type: EntityType, entity_id: int) -> bool:
         await self.initialize()
         count = await TimetableModel.find(
@@ -174,8 +181,7 @@ class Database:
         ).count()
         return count > 0
 
-    @trace
-    @profile
+    @profile(func_name="database.update_timetable")
     async def update_timetable(self, timetable: TimetableData) -> bool:
         await self.initialize()
 
@@ -223,11 +229,13 @@ class Database:
             logger.error(f"Ошибка обновления расписания: {e}")
             return False
 
-    @trace
-    @profile
+    @profile(func_name="database.get_timetable")
     async def get_timetable(
         self, entity_type: EntityType, entity_id: int
     ) -> Optional[TimetableData]:
+        """DEPRECATED"""
+        logger.warning("get_timetable is deprecated")
+        
         await self.initialize()
         model = await TimetableModel.find_one(
             {"entity.type": entity_type.value, "entity.id": entity_id}
@@ -236,11 +244,13 @@ class Database:
             return None
         return self._from_model(model)
 
-    @trace
-    @profile
+    @profile(func_name="database.get_all")
     async def get_all(
         self, entity_type: Optional[EntityType] = None
     ) -> List[TimetableData]:
+        """DEPRECATED"""
+        logger.warning("get_timetable is deprecated")
+
         await self.initialize()
         query = {}
         if entity_type:
@@ -249,8 +259,21 @@ class Database:
         models = await TimetableModel.find(query).to_list()
         return [self._from_model(model) for model in models]
 
-    @trace
-    @profile
+    @profile(func_name="database.get_timetables")
+    async def get_timetables(self) -> List[TimetableData]:
+        await self.initialize()
+        models = await TimetableModel.find({}).to_list()
+        return [self._from_model(model) for model in models]
+
+    @profile(func_name="database.get_timetable_by_query")
+    async def get_timetable_by_query(self, query: dict) -> Optional[TimetableData]:
+        await self.initialize()
+        model = await TimetableModel.find_one(query)
+        if model:
+            return self._from_model(model)
+        return None
+
+    @profile(func_name="database.delete_timetable")
     async def delete_timetable(self, entity_type: EntityType, entity_id: int) -> bool:
         await self.initialize()
         try:
@@ -266,7 +289,7 @@ class Database:
             logger.error(f"Ошибка удаления расписания: {e}")
             return False
 
-    @profile
+    @profile(func_name="database._to_model")
     def _to_model(self, timetable: TimetableData) -> TimetableModel:
         if not timetable.entity:
             raise ValueError("Timetable Entity is None")
@@ -344,7 +367,7 @@ class Database:
 
         return timetable_model
 
-    @profile
+    @profile(func_name="database._from_model")
     def _from_model(self, model: TimetableModel) -> TimetableData:
         entity_obj = Entity(
             type=EntityType(model.entity.type),
@@ -410,7 +433,7 @@ class Database:
 
         return TimetableData(entity=entity_obj, metadata=metadata_obj, lessons=lessons)
 
-    @profile
+    @profile(func_name="database.close")
     async def close(self):
         if self.client and self.initialized:
             self.client.close()

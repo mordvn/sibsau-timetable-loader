@@ -20,7 +20,6 @@ from datetime import date, time, timedelta
 
 class Parser:
     @staticmethod
-    @trace
     @profile
     async def get_timetable(entity: Entity) -> TimetableData:
         html = await Parser._fetch_timetable(entity)

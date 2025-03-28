@@ -12,8 +12,7 @@ from profiler import profile
 
 class Comparer:
     @staticmethod
-    @trace
-    @profile
+    @profile(func_name="comparer.compare_timetables")
     async def compare_timetables(
         timetable1: TimetableData, timetable2: TimetableData
     ) -> Optional[TimetableChangeData]:

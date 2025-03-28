@@ -7,14 +7,13 @@ from profiler import profile
 
 class Auditorium:
     @staticmethod
-    @trace
-    @profile
+    @profile(func_name="audithorium.from_timetables")
     async def from_timetables(timetables: List[TimetableData]) -> List[TimetableData]:
         auditoriums: Dict[str, List[Lesson]] = {}
         metadata_source = None
 
         for timetable in timetables:
-            if not metadata_source and timetable.entity.type == EntityType.GROUP:
+            if not metadata_source and timetable.entity.type == EntityType.PROFESSOR:
                 metadata_source = timetable
 
             for lesson in timetable.lessons:

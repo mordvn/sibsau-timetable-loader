@@ -23,7 +23,7 @@ class Broker:
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.close()
 
-    @profile
+    @profile(func_name="broker.initialize")
     async def initialize(self):
         if not self.initialized:
             try:
@@ -44,8 +44,7 @@ class Broker:
                 self.initialized = False
                 raise e
 
-    @trace
-    @profile
+    @profile(func_name="broker.send_changes")
     async def send_changes(self, changes: List[TimetableChangeData]) -> bool:
         if not changes:
             return True
@@ -70,7 +69,7 @@ class Broker:
             logger.error(f"Ошибка отправки изменений в RabbitMQ: {e}")
             return False
 
-    @profile
+    @profile(func_name="broker.close")
     async def close(self):
         if self.connection:
             await self.connection.close()
@@ -80,7 +79,7 @@ class Broker:
 
         logger.debug("RabbitMQ соединение закрыто")
 
-    @profile
+    @profile(func_name="broker._change_to_dict")
     def _change_to_dict(self, change: TimetableChangeData) -> Dict[str, Any]:
         entity_dict = {
             "type": change.entity.type.value,

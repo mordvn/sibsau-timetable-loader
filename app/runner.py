@@ -10,14 +10,14 @@ from parser_types import Entity, EntityType, TimetableData
 from parser import Parser
 from audithorium import Auditorium
 from comparer import Comparer
+from validator import Validator
 from typing import List
 import time
 
 
 class Runner:
     @staticmethod
-    @trace
-    @profile
+    @profile(func_name="runner.process_all_entities")
     async def process_all_entities():
         logger.info("Starting process_all_entities")
         start_time = time.time()
@@ -28,10 +28,13 @@ class Runner:
         ):
             process_entities = Runner._get_process_entities()
             timetables = await Runner._fetch_timetables(process_entities)
+
             auditorium_timetables = await Auditorium.from_timetables(timetables)
             timetables.extend(auditorium_timetables)
 
-            db_timetables = await db.get_all()
+            timetables = await Validator.validate_timetables(timetables)
+
+            db_timetables = await db.get_timetables()
             changes = await Runner._detect_changes(db_timetables, timetables)
 
             if changes:
@@ -44,7 +47,7 @@ class Runner:
         )
 
     @staticmethod
-    @profile
+    @profile(func_name="runner._get_process_entities")
     def _get_process_entities() -> List[Entity]:
         entities = []
         for group_id in range(settings.START_GROUP_ID, settings.END_GROUP_ID):
@@ -58,7 +61,7 @@ class Runner:
         return entities
 
     @staticmethod
-    @profile
+    @profile(func_name="runner._fetch_timetables")
     async def _fetch_timetables(entities: List[Entity]) -> List[TimetableData]:
         timetables = []
         for entity in entities:
@@ -73,7 +76,7 @@ class Runner:
         return timetables
 
     @staticmethod
-    @profile
+    @profile(func_name="runner._detect_changes")
     async def _detect_changes(
         db_timetables: List[TimetableData], timetables: List[TimetableData]
     ) -> List:
@@ -92,7 +95,7 @@ class Runner:
         return changes
 
     @staticmethod
-    @profile
+    @profile(func_name="runner._add_new_timetables")
     async def _add_new_timetables(db: Database, timetables: List[TimetableData]):
         for timetable in timetables:
             if not await db.is_exist(timetable.entity.type, timetable.entity.id):

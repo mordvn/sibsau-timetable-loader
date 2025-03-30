@@ -11,12 +11,15 @@ class Validator:
     async def validate_timetables(
         timetables: List[TimetableData],
     ) -> List[TimetableData]:
-        semester = None
+        default_semester = None
         for timetable in timetables:
-            if not semester:
-                semester = timetable.metadata.semester
+            if timetable.metadata.semester:
+                default_semester = timetable.metadata.semester
                 break
-        for timetable in timetables:
-            if not timetable.metadata.semester:
-                timetable.metadata.semester = semester
+                
+        if default_semester:
+            for timetable in timetables:
+                if not timetable.metadata.semester:
+                    timetable.metadata.semester = default_semester
+                    
         return timetables

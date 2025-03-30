@@ -120,7 +120,7 @@ class Comparer:
                     )
                 )
 
-        if not metadata_changes and not lesson_changes:
+        if not lesson_changes: 
             return None
 
         return TimetableChangeData(

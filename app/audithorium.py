@@ -81,6 +81,9 @@ class Auditorium:
             if not lessons:
                 continue
 
+            # Сортируем уроки по времени начала
+            sorted_lessons = sorted(lessons, key=lambda x: x.time_begin)
+
             auditorium_id = (
                 int(hashlib.md5(auditorium_name.encode()).hexdigest(), 16) % 10000000
             )
@@ -97,7 +100,7 @@ class Auditorium:
                     type=EntityType.AUDITORIUM, id=auditorium_id, name=auditorium_name
                 ),
                 metadata=metadata,
-                lessons=lessons,
+                lessons=sorted_lessons,
             )
 
             result.append(auditorium_data)

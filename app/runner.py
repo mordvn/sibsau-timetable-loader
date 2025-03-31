@@ -12,7 +12,6 @@ from comparer import Comparer
 from validator import Validator
 from typing import List
 import time
-from var_dump import var_dump
 
 class Runner:
     @staticmethod
@@ -38,7 +37,6 @@ class Runner:
             logger.info(f"Detected {len(changes)} changes")
 
             if changes:
-                var_dump(changes)
                 await broker.send_changes(changes)
 
             await Runner._add_new_timetables(db, timetables)
